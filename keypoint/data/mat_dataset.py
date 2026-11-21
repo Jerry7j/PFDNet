@@ -21,7 +21,11 @@ IMAGE_TRANSFORM = transforms.Compose([
 
 
 def read_image(path, region):
-    """Read a MAT sample or regular image and return RGB pixels."""
+    """Read a MAT sample or regular image and return an RGB array.
+
+    Use the region to select the MAT variable. Convert grayscale or BGR
+    pixels to RGB and keep the source image dimensions.
+    """
     if path.suffix.lower() == ".mat":
         image = loadmat(path)[f"{region}sample"]
     else:
@@ -34,11 +38,18 @@ def read_image(path, region):
 
 
 def image_tensor(rgb):
+    """Return a resized RGB tensor of shape (3, INPUT_SIZE, INPUT_SIZE) on the 0-255 scale."""
     # The original detector trained on RGB values in the 0-255 range.
     return IMAGE_TRANSFORM(rgb) * 255.0
 
 
 def read_points(path, region, point_count=None):
+    """Read a text or regional MAT label and return a (point_count, 2) float64 array.
+
+    Coordinates are (x, y) in source-image pixels. Omit point_count to use
+    the regional default. Raise ValueError for the wrong count or nonfinite
+    coordinates.
+    """
     if path.suffix.lower() == ".txt":
         coordinates = read_text_points(path)
     else:
@@ -51,7 +62,11 @@ def read_points(path, region, point_count=None):
 
 
 def label_path_for(sample, label_dir, region):
-    """Match JPEG text sidecars by stem, or pair with a regional MAT label."""
+    """Resolve the expected annotation path for an image sample.
+
+    Prefer an existing stem-matched TXT file for non-MAT images. Use the
+    regional sample ID to match MAT names. The returned path may be missing.
+    """
     text_label = label_dir / f"{sample.stem}.txt"
     is_mat = sample.suffix.lower() == ".mat"
     if not is_mat and text_label.is_file():
@@ -70,6 +85,12 @@ def label_path_for(sample, label_dir, region):
 
 class LandmarkDataset(Dataset):
     def __init__(self, root, region, split="train", *, images_dir=None, labels_dir=None, point_count=None):
+        """Index sorted image-label pairs for the requested region and split.
+
+        Use explicit image and label directories when supplied, or derive them
+        from root and split. Check that every image has a label and retain the
+        optional landmark count override for reading labels.
+        """
         suffix = {"train": "", "val": "_val", "test": "_test"}[split]
         sample_dir = images_dir if images_dir is not None else root / f"{region}sample{suffix}"
         labels = labels_dir if labels_dir is not None else root / f"{region}labels{suffix}"
@@ -87,9 +108,15 @@ class LandmarkDataset(Dataset):
         self.point_count = point_count
 
     def __len__(self):
+        """Return the number of indexed image-label pairs."""
         return len(self.pairs)
 
     def __getitem__(self, index):
+        """Return the resized RGB tensor and Gaussian target tensor for an index.
+
+        Map source-image (x, y) coordinates onto the resized pixel grid and
+        create one float32 heatmap channel per landmark.
+        """
         sample, label = self.pairs[index]
         rgb = read_image(sample, self.region)
         height, width = rgb.shape[:2]

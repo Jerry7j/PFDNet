@@ -8,6 +8,12 @@ IMAGE_SUFFIXES = {".mat", ".bmp", ".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
 
 def main():
+    """Run landmark inference on the requested image or directory.
+
+    Load the checkpoint and write predictions in source-image pixel
+    coordinates to JSON. Optionally include label errors and save overlays
+    or per-landmark heatmaps.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--region", required=True, choices=("hip", "knee", "ankle"))
     parser.add_argument("--input", required=True, type=Path, help="One image or a directory")
@@ -51,6 +57,7 @@ def main():
             directory.mkdir(parents=True, exist_ok=True)
 
     def write_png(destination, image):
+        """Encode an image as PNG and write it to destination, raising ValueError on encoding failure."""
         ok, encoded = cv2.imencode(".png", image)
         if not ok:
             raise ValueError(f"Could not encode: {destination}")

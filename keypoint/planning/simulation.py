@@ -5,7 +5,12 @@ import numpy as np
 
 
 def simulate(image, hinge, cut_end, angle, method, mode):
-    """Rotate one side of the cut on a single-leg crop in its pixel coordinates."""
+    """Rotate one side of a single-leg crop and return an image of the same size.
+
+    hinge and cut_end are (x, y) points in crop pixels, and angle is in
+    degrees. method selects the moving side, and mode sets the rotation
+    direction for that method.
+    """
     if method not in ("HTO", "DFO") or mode not in ("MOpen", "MClose", "LOpen", "LClose"):
         raise ValueError("Unknown method or mode")
     if hinge == cut_end:
@@ -40,7 +45,11 @@ def simulate(image, hinge, cut_end, angle, method, mode):
 
 
 def ruler_segments(image, roi, min_width=20):
-    """Return bright ruler line candidates in full-image pixel coordinates."""
+    """Find bright ruler segments in an (x, y, width, height) ROI of a color image.
+
+    Keep segments whose horizontal span exceeds min_width pixels. Return a
+    list of endpoint pairs in full-image pixel coordinates.
+    """
     x, y, w, h = roi
     if min(x, y) < 0 or min(w, h) <= 0 or x + w > image.shape[1] or y + h > image.shape[0]:
         raise ValueError("Ruler ROI must be inside the image")

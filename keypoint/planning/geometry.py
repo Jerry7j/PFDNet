@@ -4,7 +4,12 @@ from math import atan2, degrees, dist, isclose, sqrt
 
 
 def line_angle(a, b, c, d):
-    """Legacy 0–180 degree convention, including the original point ordering."""
+    """Return the angle between the directed segments b to a and d to c.
+
+    Points are (x, y) pairs. Preserve the original [0, 180) degree
+    convention, where a 180-degree difference maps to zero. Raise ValueError
+    if either segment has coincident endpoints.
+    """
     if a == b or c == d:
         raise ValueError("Angle segments must have distinct endpoints")
     first = atan2(a[1] - b[1], a[0] - b[0])
@@ -14,7 +19,11 @@ def line_angle(a, b, c, d):
 
 
 def measure_angles(hip, knee_upper, knee_lower, ankle):
-    """Each joint line is [center, first endpoint, second endpoint]."""
+    """Return mLDFA, JLCA, MPTA, and LDTA in degrees.
+
+    hip is an (x, y) point. knee_upper, knee_lower, and ankle each give
+    the joint center followed by the two ordered endpoints of the joint line.
+    """
     upper_center, upper_a, upper_b = knee_upper
     lower_center, lower_a, lower_b = knee_lower
     ankle_center, ankle_a, ankle_b = ankle
@@ -27,12 +36,18 @@ def measure_angles(hip, knee_upper, knee_lower, ankle):
 
 
 def fujisawa_angle(hip, target, ankle):
-    """Return the angle between the two segments through the target."""
+    """Return the change in direction at the Fujisawa target in degrees along ankle, target, and hip."""
     return line_angle(hip, target, target, ankle)
 
 
 def miniaci(hip, target, ankle, hinge, method, mode):
-    """Intersect the target axis with the circle centered at the hinge."""
+    """Return the adjusted joint center and correction angle in degrees.
+
+    HTO moves the ankle and DFO moves the hip. The target defines the axis
+    through the fixed joint center, and hinge defines the center of rotation.
+    mode selects the intersection by x coordinate. For a vertical axis,
+    use the intersection closest to the moving joint's original center.
+    """
     if method == "HTO":
         anchor, moving = hip, ankle
         use_smaller_x = mode in ("MOpen", "LClose")

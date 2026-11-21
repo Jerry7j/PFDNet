@@ -9,6 +9,10 @@ from .geometry import fujisawa_angle, measure_angles, miniaci
 
 
 def main():
+    """Run the requested geometry, ruler detection, or image simulation command.
+
+    Print the results as JSON and write a simulation PNG when requested.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command")
     for name in ("measure", "fujisawa", "miniaci"):
@@ -30,6 +34,7 @@ def main():
         parser.error("--image and --output must be provided together")
 
     def load_image(path, cv2, np):
+        """Decode an image path as a BGR array or report a command-line error on decode failure."""
         image = cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_COLOR)
         if image is None:
             parser.error(f"Could not decode image: {path}")

@@ -4,6 +4,7 @@ import numpy as np
 
 
 def gaussian2D(shape, sigma=1):
+    """Return a centered 2D Gaussian of (height, width), using sigma in pixels."""
     m, n = [(ss - 1.) / 2. for ss in shape]
     y, x = np.ogrid[-m:m + 1, -n:n + 1]
 
@@ -14,6 +15,12 @@ def gaussian2D(shape, sigma=1):
 
 
 def draw_umich_gaussian(heatmap, center, radius, k=1):
+    """Draw a Gaussian of the given radius at the integer (x, y) pixel center.
+
+    Clip the kernel to the heatmap bounds and scale its values by k. Combine
+    it with the heatmap by taking the pixelwise maximum in place and return
+    the same array.
+    """
     diameter = 2 * radius + 1
     gaussian = gaussian2D((diameter, diameter), sigma=diameter / 7)
     # 一个圆对应内切正方形的高斯分布

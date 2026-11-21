@@ -5,6 +5,11 @@ from pathlib import Path
 
 
 def run_epoch(model, loader, device, optimizer=None):
+    """Process batches of images and target heatmaps and return the per-sample mean MSE.
+
+    Move each batch to device. A supplied optimizer enables training and
+    parameter updates. Otherwise run evaluation with gradients disabled.
+    """
     import torch
 
     training = optimizer is not None
@@ -24,6 +29,11 @@ def run_epoch(model, loader, device, optimizer=None):
 
 
 def main():
+    """Train PFDNet from the command-line configuration and save its weights.
+
+    Report training MSE and optional validation MSE after each epoch, then
+    save the model state dictionary to the requested path.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--region", required=True, choices=("hip", "knee", "ankle"))
     parser.add_argument("--data-root", type=Path, help="Root of the regional sample and label directories")

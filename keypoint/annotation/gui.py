@@ -12,6 +12,11 @@ ARROWS = {2490368: "up", 2621440: "down", 2424832: "left", 2555904: "right",
 
 
 def run(directory):
+    """Open the OpenCV landmark editor for supported images in a directory.
+
+    Resume at the first image without an annotation. Save named pixel
+    coordinates to a TXT file beside each image when leaving it.
+    """
     import cv2
     import numpy as np
 
@@ -30,12 +35,14 @@ def run(directory):
     points = []
 
     def click(event, x, y, flags, userdata):
+        """Add the active label on a left click or undo the last point on a right click."""
         if event == cv2.EVENT_LBUTTONDOWN and y < image.shape[0]:
             points.append((labels[active_label], (x, y)))
         elif event == cv2.EVENT_RBUTTONUP and points:
             points.pop()
 
     def label_path(image_path):
+        """Return the path to the TXT annotation beside the given image."""
         return image_path.with_suffix(".txt")
 
     # Resume at the first image without a sidecar annotation.
@@ -89,6 +96,7 @@ def run(directory):
 
 
 def main():
+    """Read the image directory from the command line or a folder picker and launch the editor."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("images", nargs="?", type=Path, help="Image directory, or omit for folder picker")
     args = parser.parse_args()

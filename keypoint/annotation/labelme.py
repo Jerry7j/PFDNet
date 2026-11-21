@@ -10,6 +10,11 @@ LABELS = ("Rotate_center", "Surgical_point", "Fujisawa_point")
 
 
 def read_text_points(path):
+    """Read a UTF-8 file of (label, (x, y)) tuples in file order.
+
+    Skip blank lines and discard the labels. Return a list of [x, y] float
+    pairs. Invalid or nonfinite coordinates raise ValueError with the line number.
+    """
     points = []
     for number, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
         if not line.strip():
@@ -26,6 +31,11 @@ def read_text_points(path):
 
 
 def main():
+    """Write a LabelMe JSON document from the command-line inputs.
+
+    Use three text rows in LABELS order for a new document or one row to
+    replace the Fujisawa point in existing shapes. Reference the image by path.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True, type=Path)
     parser.add_argument("--points", required=True, type=Path)

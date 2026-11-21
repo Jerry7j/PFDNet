@@ -8,15 +8,13 @@ class Bottle2neck(nn.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, baseWidth=26, scale=4, stype='normal'):
-        """ Constructor
-        Args:
-            inplanes: input channel dimensionality
-            planes: output channel dimensionality
-            stride: conv stride. Replaces pooling layer.
-            downsample: None when stride = 1
-            baseWidth: basic width of conv3x3
-            scale: number of scale.
-            type: 'normal': normal set. 'stage': first block of a new stage.
+        """Build a multi-scale residual bottleneck.
+
+        inplanes is the input channel count, and planes is the output width
+        before expansion. baseWidth and scale set the branch width and count.
+        stride controls spatial downsampling. downsample optionally projects
+        the shortcut to the output shape. stype selects a normal block or the
+        first block of a stage.
         """
         super(Bottle2neck, self).__init__()
 
@@ -48,6 +46,7 @@ class Bottle2neck(nn.Module):
         self.width = width
 
     def forward(self, x):
+        """Process channel groups at multiple scales and return the activated residual sum."""
         residual = x
 
         out = self.conv1(x)
@@ -86,6 +85,12 @@ class Bottle2neck(nn.Module):
 class Res2Net(nn.Module):
 
     def __init__(self, block, layers, baseWidth=26, scale=4, num_classes=1000):
+        """Build the stem, four residual stages, and classification head.
+
+        block specifies the bottleneck class, and layers gives the block count
+        for each stage. baseWidth and scale configure the bottlenecks.
+        num_classes sets the number of output logits.
+        """
         self.inplanes = 64
         super(Res2Net, self).__init__()
         self.baseWidth = baseWidth
@@ -117,6 +122,11 @@ class Res2Net(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def _make_layer(self, block, planes, blocks, stride=1):
+        """Build a residual stage with the requested block count and first-block stride.
+
+        Project the first shortcut when spatial size or channel count changes,
+        and update the tracked channel count for the next stage.
+        """
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
@@ -137,6 +147,7 @@ class Res2Net(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        """Return class logits for an NCHW batch of RGB images."""
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -155,5 +166,5 @@ class Res2Net(nn.Module):
 
 
 def res2net50_v1b_26w_4s():
-    """Build the backbone without loading a checkpoint."""
+    """Return a freshly initialized Res2Net-50 v1b with base width 26 and four scales."""
     return Res2Net(Bottle2neck, [3, 4, 6, 3], baseWidth=26, scale=4)

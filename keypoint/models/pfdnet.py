@@ -8,6 +8,7 @@ from .res2net import res2net50_v1b_26w_4s
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        """Configure a 2D convolution and batch normalization for the requested channel sizes and geometry."""
         super(BasicConv2d, self).__init__()
         self.conv = nn.Conv2d(in_planes, out_planes,
                               kernel_size=kernel_size, stride=stride,
@@ -16,6 +17,7 @@ class BasicConv2d(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
+        """Return the batch-normalized convolution of an NCHW feature tensor."""
         x = self.conv(x)
         x = self.bn(x)
         return x
@@ -23,6 +25,7 @@ class BasicConv2d(nn.Module):
 
 class RFB_modified(nn.Module):
     def __init__(self, in_channel, out_channel):
+        """Build four branches with different receptive fields and a residual channel projection."""
         super(RFB_modified, self).__init__()
         self.relu = nn.ReLU(True)
         self.branch0 = nn.Sequential(
@@ -50,6 +53,7 @@ class RFB_modified(nn.Module):
         self.conv_res = BasicConv2d(in_channel, out_channel, 1)
 
     def forward(self, x):
+        """Fuse the four branches and return activated features at the input spatial resolution."""
         x0 = self.branch0(x)
         x1 = self.branch1(x)
         x2 = self.branch2(x)
@@ -64,6 +68,7 @@ class aggregation(nn.Module):
     # dense aggregation, it can be replaced by other aggregation previous, such as DSS, amulet, and so on.
     # used after MSF
     def __init__(self, channel, num_keypoints):
+        """Set the shared feature width and build the layers that output one heatmap per landmark."""
         super(aggregation, self).__init__()
         self.relu = nn.ReLU(True)
 
@@ -80,6 +85,11 @@ class aggregation(nn.Module):
         self.conv5 = nn.Conv2d(3 * channel, num_keypoints, 1)
 
     def forward(self, x1, x2, x3):
+        """Fuse three equal-width feature maps ordered from coarse to fine.
+
+        Each map has twice the spatial resolution of the preceding map. Return
+        one heatmap per landmark at the resolution of x3.
+        """
         x1_1 = x1
         x2_1 = self.conv_upsample1(self.upsample(x1)) * x2
         x3_1 = self.conv_upsample2(self.upsample(self.upsample(x1))) \
@@ -100,6 +110,7 @@ class aggregation(nn.Module):
 class PFDNet(nn.Module):
     """Res2Net encoder and shared decoder for landmark heatmaps."""
     def __init__(self, channel=128, num_keypoints=3):
+        """Build the Res2Net encoder and shared decoder with the given width and landmark count."""
         super(PFDNet, self).__init__()
         self.resnet = res2net50_v1b_26w_4s()
         self.rfb1_1 = RFB_modified(256, channel)
@@ -110,6 +121,11 @@ class PFDNet(nn.Module):
 
 
     def forward(self, x):
+        """Predict landmark heatmaps from an NCHW batch of RGB images.
+
+        Decode two overlapping groups of encoder stages, upsample their maps
+        to the input grid for the supported image size, and add the outputs.
+        """
         x = self.resnet.maxpool(self.resnet.relu(self.resnet.bn1(self.resnet.conv1(x))))
         x1 = self.resnet.layer1(x)
         x2 = self.resnet.layer2(x1)
